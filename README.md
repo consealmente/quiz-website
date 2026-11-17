@@ -1,30 +1,29 @@
 # Study Quiz Library
 
-A personal quiz dashboard with **PSYCH 100 — Exam 3** (80 questions) as its first quiz. Features include randomized questions and answers, explanations for every answer, unlimited attempts, returning to unfinished attempts, reviewing completed attempts, missed-question practice, and copyable ChatGPT study reports.
+A personal quiz dashboard with **PSYCH 100 — Exam 3** (80 questions) as its first quiz. Features include randomized questions and answers, explanations for every answer, unlimited attempts, resuming unfinished attempts, reviewing past attempts, missed-question practice, and copyable ChatGPT study reports.
+
+## Automatic shared history (no login or pairing)
+
+Open the Vercel site on any device: the website automatically loads and saves the **same shared quiz history**. No account, email, password, or pairing code is required. LocalStorage keeps a local fallback if cloud syncing temporarily fails. Opening on a new device does not create a duplicate blank attempt when shared history exists.
+
+**Privacy trade-off:** The production website and its /api/sync endpoint are publicly reachable. **Anyone with the website address can read, change, or overwrite your shared quiz progress.** Do not use this arrangement for private information. If privacy is required later, add site-level access control.
 
 ## Architecture
 
-- `index.html`: static quiz dashboard; localStorage fallback for offline use.
-- `api/sync.js`: Vercel function; checks the device-pairing code, proxies authorized sync requests to Supabase Edge Functions.
-- `supabase/functions/quiz-sync-personal/index.ts`: Supabase Edge Function; independently checks a SHA-256 digest of the pairing code, then accesses the database with Supabase's built-in server-side service-role credential.
-- `supabase.sql`: creates the isolated `public.quiz_sync` table, enables RLS, revokes public roles, and grants service_role access.
-- Supabase project: **scholaros** (existing project reused with owner's permission; unrelated data/tables are preserved).
+- `index.html`: static quiz dashboard and automatic cloud syncing.
+- `api/sync.js`: public Vercel API route, forwards GET/PUT to the Supabase Edge Function with a **server-side** shared code.
+- `supabase/functions/quiz-sync-personal/index.ts`: Edge Function independently checks a SHA-256 digest of the server-to-server code before accessing the database.
+- `supabase.sql`: isolated `public.quiz_sync` table, RLS enabled and public roles revoked. No direct browser access to Supabase.
+- Supabase project: **scholaros** (reused; other tables preserved).
 - Vercel project: **quiz-website**, team **death16**, GitHub `consealmente/quiz-website`.
 
 ## Vercel environment variables
 
-- `QUIZ_SYNC_CODE` — private device pairing code (sensitive)
-- `SUPABASE_EDGE_SYNC_URL` — `https://gbqowowdkwxugqgwcitv.supabase.co/functions/v1/quiz-sync-personal`
-
-**Never put the pairing code or a Supabase service-role/secret key in client-side HTML or GitHub.** The Edge Function source contains only the SHA-256 digest of the high-entropy pairing code, not the code itself. No Supabase service-role key is needed in Vercel.
-
-## Usage
-
-Visit the production website, choose **PSYCH 100 — Exam 3**, and create an attempt. Under **Cloud sync**, enter the private pairing code once on each device. Your answers and attempt history will then synchronize. The quiz continues working locally if the cloud is unavailable.
+- `QUIZ_SYNC_CODE`: private **server-to-server** code (sensitive; never sent to the browser)
+- `SUPABASE_EDGE_SYNC_URL`: `https://gbqowowdkwxugqgwcitv.supabase.co/functions/v1/quiz-sync-personal`
 
 ## Limitations
 
-- Anyone with the public URL can view the quiz questions; only saved progress is protected by the pairing code.
-- Anyone with the pairing code can read and change saved history. Keep it private.
-- Avoid simultaneously editing the same attempt on two devices.
-- Previous downloaded `file://` HTML quiz progress is not automatically imported into the website.
+- Anyone with the URL can read and modify quiz history; there is no user-specific access control.
+- Avoid simultaneously editing the same attempt on two different devices; the merge routine retains the first answer to each question.
+- Previously downloaded `file://` HTML quiz progress is not automatically imported into the website.

@@ -28,11 +28,7 @@
 </style></head><body><div class="wrap"><header><div><div class="tag">YOUR STUDY SPACE</div><h1>Quiz Library</h1><p>Choose a quiz, revisit your attempts, and track what you have learned.</p></div><span class="pill">Study progress</span></header><section id="libraryView">
  <section class="library-card" aria-label="PSYCH 100 practice quiz"><div class="library-grid"><div><div class="shelf-tag">PSYCHOLOGY • Haverford College</div><h2>PSYCH 100 — Exam 3</h2><p>80 practice questions covering Memory, Personality, Culture and Social Psychology. Randomized questions, detailed explanations of all choices, and your past results.</p><div class="library-meta">80 questions · Unlimited attempts · Missed-question review</div></div><button id="startQuiz" class="btn">+ New attempt</button></div></section>
  <section class="library-section attempt-history"><div class="quiz-toolbar"><h2>Previous attempts</h2><span class="mini">Open or review any saved attempt</span></div><div id="libraryAttempts"></div></section>
- <section class="sync-panel" aria-label="Cross-device sync settings"><div class="shelf-tag">Cloud sync</div><h2>Pair your devices</h2><p>No account or email sign-in. Your personal pairing code is entered once on each device to keep your results private. Anyone with the code could access your saved progress.</p>
-  <form id="pairForm"><label for="pairInput">Private pairing code</label><div class="pair-fields"><input id="pairInput" type="password" autocomplete="off" placeholder="Enter your private code" required><button class="btn" type="submit">Pair this device</button></div></form>
-  <div id="pairConnected" hidden><p id="pairState"></p><div class="attempt-actions"><button class="btn outline small" type="button" id="syncNow">Save now</button><button class="btn outline small" type="button" id="refreshNow">Check other devices</button><button class="btn outline small" type="button" id="forgetCode">Forget this device</button></div></div>
-  <div id="cloudStatus" class="cloud-status" role="status" aria-live="polite"></div>
- </section>
+ <p id="cloudStatus" class="mini" role="status" aria-live="polite">Loading saved progress from the cloud…</p>
  </section>
  <div id="quizView" hidden><div class="quiz-toolbar"><button class="btn outline small" id="backLibrary" type="button">← Quiz library</button><span class="mini">PSYCH 100 — Exam 3</span></div><div class="quiz-toolbar" id="attemptNav"></div>
 <div class="bar"><i id="fill"></i></div><div class="status"><span id="progress">Question 1 of 80</span><span class="score" id="score">0 correct · 0 incorrect</span></div>
@@ -55,8 +51,7 @@ const ALL=[{"n":1,"question":"A student remembers the last two words in a long l
 let state;
 const LEGACY_KEY='psych100-exam3-progress-v3';
 const GUEST_KEY='psych100-exam3-progress-v5-guest';
-const PAIR_KEY='quiz-library-device-pair-v1';
-let syncCode='',cloudReady=false,cloudLoading=false,cloudRevision=0;
+let cloudReady=false,cloudLoading=false,cloudRevision=0;
 let syncTimer=null,syncInFlight=false,syncQueued=false,cloudApplying=false;
 let syncRetryDelay=800,reviewMode=false,reviewPos=0,reviewIds=[],viewName='library';
 function cacheKey(){return GUEST_KEY;}
@@ -125,7 +120,7 @@ function saveState(){
  try{localStorage.setItem(cacheKey(),JSON.stringify(state));storageWorks=true;}
  catch(e){storageWorks=false;}
  const el=$('saveStatus');if(el){el.textContent=storageWorks?'✓ Local backup saved':'⚠ Browser storage unavailable — download your report';el.className='mini '+(storageWorks?'inline-success':'inline-warning');}
- if(!cloudApplying&&syncCode&&cloudReady)scheduleCloudSync();
+ if(!cloudApplying&&cloudReady)scheduleCloudSync();
 }
 function current(){return state.attempts.find(a=>a.id===state.activeId);}
 function allAnswers(a){return a.questionIds.filter(n=>Object.prototype.hasOwnProperty.call(a.answers,n));}
@@ -326,9 +321,8 @@ function renderLibrary(){
 function showSync(message,kind='muted'){
  const el=$('cloudStatus');if(el){el.textContent=message;el.dataset.kind=kind;}
 }
-function localCode(){try{return localStorage.getItem(PAIR_KEY)||'';}catch(e){return '';}}
-async function apiCall(method,payload=null,code=syncCode){
- const options={method,headers:{'x-sync-code':code,'Accept':'application/json'}};
+async function apiCall(method,payload=null){
+ const options={method,headers:{'Accept':'application/json'}};
  if(payload){options.headers['Content-Type']='application/json';options.body=JSON.stringify(payload);}
  const response=await fetch('/api/sync',options);
  let result={};try{result=await response.json();}catch(e){}
@@ -336,38 +330,37 @@ async function apiCall(method,payload=null,code=syncCode){
  return result;
 }
 async function fetchCloud(){return apiCall('GET');}
-async function connectCloud(code){
- if(!code)return;
- cloudLoading=true;showSync('Connecting this device…');
+async function connectCloud(){
+ if(cloudLoading)return;
+ cloudLoading=true;
+ $('startQuiz').disabled=true;
+ showSync('Loading your shared quiz history…');
  try{
-  const remote=await fetchCloudWithCode(code);
-  syncCode=code;try{localStorage.setItem(PAIR_KEY,code);}catch(e){}
+  const remote=await fetchCloud();
   cloudRevision=remote.revision||0;
   const incoming=parseState(remote.state);
-  state=incoming&&!hasAnswers(state)?incoming:mergeStates(incoming,state);
+  // Don't create a duplicate blank attempt each time a new device opens the site.
+  state=incoming&&!hasAnswers(state)&&state.attempts.length===1?incoming:mergeStates(incoming,state);
   cloudApplying=true;saveState();cloudApplying=false;
-  cloudReady=true;cloudLoading=false;
+  cloudReady=true;
   if(viewName==='quiz')rebuild();else renderLibrary();
-  renderPairing();showSync('✓ This device is paired. Your quiz history can sync across devices.','good');
-  scheduleCloudSync();
+  showSync('✓ Saved progress is shared automatically across devices.','good');
+  if(!incoming||JSON.stringify(incoming)!==JSON.stringify(state))scheduleCloudSync();
  }catch(err){
-  cloudReady=false;cloudLoading=false;showSync('Cloud not connected: '+err.message+' — quiz still saves locally.','bad');
-  if(err.status===503){syncCode=code;try{localStorage.setItem(PAIR_KEY,code);}catch(e){}renderPairing();}
+  cloudReady=false;
+  showSync('Cloud unavailable: '+err.message+' — progress is saved locally and will sync when reconnected.','bad');
+ }finally{
+  cloudLoading=false;
+  $('startQuiz').disabled=false;
  }
 }
-function fetchCloudWithCode(code){return apiCall('GET',null,code);}
-function renderPairing(){
- $('pairForm').hidden=Boolean(syncCode);
- $('pairConnected').hidden=!syncCode;
- $('pairState').textContent=syncCode?'Pairing code saved on this device':'Not paired on this device';
-}
 function scheduleCloudSync(){
- if(!syncCode||!cloudReady)return;
+ if(!cloudReady)return;
  syncQueued=true;clearTimeout(syncTimer);syncTimer=setTimeout(()=>void pushCloud(),750);
  showSync('Saving progress to cloud…');
 }
 async function pushCloud(){
- if(!syncCode||!cloudReady||!syncQueued||syncInFlight)return;
+ if(!cloudReady||!syncQueued||syncInFlight)return;
  syncInFlight=true;syncQueued=false;
  try{
   for(let attempt=0;attempt<4;attempt++){
@@ -383,43 +376,33 @@ async function pushCloud(){
     break;
    }catch(err){if(err.status!==409||attempt===3)throw err;}
   }
- }catch(err){showSync('Sync pending: '+err.message+' — saved locally.','bad');syncQueued=true;syncRetryDelay=15000;}
- finally{syncInFlight=false;if(syncQueued&&syncCode&&cloudReady){clearTimeout(syncTimer);syncTimer=setTimeout(()=>void pushCloud(),syncRetryDelay);}}
+ }catch(err){
+  showSync('Sync pending: '+err.message+' — saved locally.','bad');
+  syncQueued=true;syncRetryDelay=15000;
+ }finally{
+  syncInFlight=false;
+  if(syncQueued&&cloudReady){clearTimeout(syncTimer);syncTimer=setTimeout(()=>void pushCloud(),syncRetryDelay);}
+ }
 }
 async function refreshCloud(){
- if(!syncCode)return;
- if(!cloudReady){await connectCloud(syncCode);return;}
- if(syncInFlight)return;
+ if(cloudLoading||syncInFlight)return;
+ if(!cloudReady){await connectCloud();return;}
  try{
   const remote=await fetchCloud(),old=JSON.stringify(state);
-  state=mergeStates(parseState(remote.state),state);
+  const incoming=parseState(remote.state);
+  state=mergeStates(incoming,state);
   cloudRevision=remote.revision||0;
   cloudApplying=true;saveState();cloudApplying=false;
   if(viewName==='quiz')rebuild();else renderLibrary();
-  showSync('✓ Checked other devices at '+new Date().toLocaleTimeString(),'good');
-  if(JSON.stringify(state)!==JSON.stringify(parseState(remote.state)) || old!==JSON.stringify(state))scheduleCloudSync();
- }catch(err){showSync('Check failed: '+err.message,'bad');}
-}
-function forgetPairing(){
- if(!confirm('Forget the sync code on this device? Your saved local quiz results will stay.'))return;
- syncCode='';cloudReady=false;clearTimeout(syncTimer);
- try{localStorage.removeItem(PAIR_KEY);}catch(e){}
- renderPairing();showSync('Sync disconnected. Quiz history is still saved locally.');
+  showSync('✓ Progress checked at '+new Date().toLocaleTimeString(),'good');
+  if(!incoming||JSON.stringify(state)!==JSON.stringify(incoming)||old!==JSON.stringify(state))scheduleCloudSync();
+ }catch(err){showSync('Cloud check pending: '+err.message,'bad');}
 }
 function initCloud(){
- $('pairForm').addEventListener('submit',e=>{
-  e.preventDefault();const code=$('pairInput').value.toUpperCase().replace(/[\s-]/g,'');
-  if(code.length<20){showSync('Enter the complete private pairing code.','bad');return;}
-  void connectCloud(code);
- });
- $('syncNow').onclick=()=>{if(!cloudReady){void connectCloud(syncCode);}else{syncQueued=true;void pushCloud();}};
- $('refreshNow').onclick=()=>void refreshCloud();
- $('forgetCode').onclick=forgetPairing;
- syncCode=localCode();renderPairing();
- if(syncCode)void connectCloud(syncCode);
- else showSync('Device not paired. Your quiz works and saves locally. Pair it for private cross-device sync.');
- window.addEventListener('online',()=>{if(syncCode){if(cloudReady)scheduleCloudSync();else void connectCloud(syncCode);}});
- window.addEventListener('focus',()=>{if(syncCode&&cloudReady)void refreshCloud();});
+ void connectCloud();
+ window.addEventListener('online',()=>{if(cloudReady)scheduleCloudSync();else void connectCloud();});
+ window.addEventListener('focus',()=>void refreshCloud());
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshCloud();});
 }
 function init(){
  state=loadState();
