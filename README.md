@@ -1,32 +1,30 @@
 # Study Quiz Library
 
-A personal, growing quiz dashboard. The first quiz is **PSYCH 100 — Exam 3**, with 80 randomized questions, detailed explanations, repeated full attempts, answer review, missed-question retries, and exportable ChatGPT study reports.
+A personal quiz dashboard with **PSYCH 100 — Exam 3** (80 questions) as its first quiz. Features include randomized questions and answers, explanations for every answer, unlimited attempts, returning to unfinished attempts, reviewing completed attempts, missed-question practice, and copyable ChatGPT study reports.
 
 ## Architecture
 
-- Static `index.html` containing the quiz and its content (no build step).
-- Vercel `/api/sync` Node function for confidential cloud progress access.
-- Supabase Postgres (`public.quiz_sync`) storing all attempt history in a single revisioned record.
-- Browser localStorage for offline resilience.
-- **No email/password login.** A private one-time *device pairing code* is required on each new device for cloud access. The code is stored in each device's browser. Anyone with it can read/write your history. There is no public browser access to Supabase.
+- `index.html`: static quiz dashboard; localStorage fallback for offline use.
+- `api/sync.js`: Vercel function; checks the device-pairing code, proxies authorized sync requests to Supabase Edge Functions.
+- `supabase/functions/quiz-sync-personal/index.ts`: Supabase Edge Function; independently checks a SHA-256 digest of the pairing code, then accesses the database with Supabase's built-in server-side service-role credential.
+- `supabase.sql`: creates the isolated `public.quiz_sync` table, enables RLS, revokes public roles, and grants service_role access.
+- Supabase project: **scholaros** (existing project reused with owner's permission; unrelated data/tables are preserved).
+- Vercel project: **quiz-website**, team **death16**, GitHub `consealmente/quiz-website`.
 
-## Deployment
+## Vercel environment variables
 
-The GitHub repo `consealmente/quiz-website` is linked to the existing `quiz-website` project in the Vercel team `death16`. Push to `main` to trigger a deployment.
+- `QUIZ_SYNC_CODE` — private device pairing code (sensitive)
+- `SUPABASE_EDGE_SYNC_URL` — `https://gbqowowdkwxugqgwcitv.supabase.co/functions/v1/quiz-sync-personal`
 
-Set these Vercel environment variables for **Production, Preview, Development**:
+**Never put the pairing code or a Supabase service-role/secret key in client-side HTML or GitHub.** The Edge Function source contains only the SHA-256 digest of the high-entropy pairing code, not the code itself. No Supabase service-role key is needed in Vercel.
 
-- `QUIZ_SYNC_CODE`: long unpredictable private code (20+ characters), known only to the owner and Vercel.
-- `SUPABASE_URL`: HTTPS URL for a dedicated Supabase project.
-- `SUPABASE_SERVICE_ROLE_KEY`: secret service-role key. **Never publish this in GitHub, HTML, or JS sent to the browser.**
+## Usage
 
-Create a dedicated Supabase project and execute `supabase.sql` there. The table has RLS enabled and no anonymous/authenticated access. The Vercel serverless function accesses it using the secret service-role key after validating the device pairing code. Set variables in Vercel and redeploy.
+Visit the production website, choose **PSYCH 100 — Exam 3**, and create an attempt. Under **Cloud sync**, enter the private pairing code once on each device. Your answers and attempt history will then synchronize. The quiz continues working locally if the cloud is unavailable.
 
-On each device: visit the Vercel site, open **Quiz Library**, enter the pairing code once under **Cloud sync**, then open or create attempts. Progress will synchronize when connected. The quiz still works locally before the database is connected.
+## Limitations
 
-## Caveats
-
-- Public Vercel hosting means someone with the URL can *see the practice quiz*. Only cloud attempt history is private behind the pairing code. Website-level privacy needs deployment protection.
-- Do not use the same attempt simultaneously on two different devices; revisions and attempt merges help but each device may move the current question independently.
-- Existing `file://` quiz progress cannot be migrated automatically into Vercel; copy/export old reports if needed.
-- Cloud sync is not ready until Supabase and server secrets are configured.
+- Anyone with the public URL can view the quiz questions; only saved progress is protected by the pairing code.
+- Anyone with the pairing code can read and change saved history. Keep it private.
+- Avoid simultaneously editing the same attempt on two devices.
+- Previous downloaded `file://` HTML quiz progress is not automatically imported into the website.
