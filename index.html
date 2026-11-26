@@ -477,7 +477,7 @@ if(window.React && window.ReactDOM && typeof ReactDOM.createRoot==='function'){
  }
  function QuestionView({a,q,position,ids,isReview}){
   const rec=a.answers[q.n],correct=letters.indexOf(q.letter),s=stats(a);
-  React.useEffect(()=>{function key(e){if(e.altKey||e.ctrlKey||e.metaKey||e.shiftKey||e.repeat||['INPUT','TEXTAREA','SELECT','BUTTON'].includes(e.target?.tagName)||e.target?.isContentEditable)return;const i=['1','2','3','4'].indexOf(e.key);if(i>=0&&!rec&&!isReview){e.preventDefault();choose(orderFor(a,q)[i]);}else if(e.key==='ArrowRight'&&(rec||isReview)){e.preventDefault();advance();}else if(e.key==='ArrowLeft'&&position>0){e.preventDefault();goPrevious();}}window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[a.id,q.n,rec,isReview,position]);
+  React.useEffect(()=>{function key(e){if(viewName!=='quiz'||cloudLoading||e.altKey||e.ctrlKey||e.metaKey||e.shiftKey||e.repeat||['INPUT','TEXTAREA','SELECT','BUTTON'].includes(e.target?.tagName)||e.target?.isContentEditable)return;const i=['1','2','3','4'].indexOf(e.key);if(i>=0&&!rec&&!isReview){e.preventDefault();choose(orderFor(a,q)[i]);}else if(e.key==='ArrowRight'&&(rec||isReview)){e.preventDefault();advance();}else if(e.key==='ArrowLeft'&&position>0){e.preventDefault();goPrevious();}}window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[a.id,q.n,rec,isReview,position]);
   return h('div',{className:'question-layout'},h('div',{className:'question-body'},
    h('div',{className:'eyebrow'},q.category+' · '+(isReview?'Review':'Question')+' '+(position+1)+' of '+ids.length),
    h('h2',{className:'question'},q.question),
