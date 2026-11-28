@@ -20,63 +20,63 @@
   "rewrites": [
     {
       "source": "/arcade",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/arcade/:path*",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/adventure",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/lab",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/courses",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/courses/:path*",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/review",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/flashcards",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/lessons",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/exam",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/tutor",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/analytics",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/profile",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/study-room",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/multiplayer",
-      "destination": "/index.html"
+      "destination": "/"
     }
   ]
 }
