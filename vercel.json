@@ -85,6 +85,14 @@
     {
       "source": "/psychology/:path*",
       "destination": "/"
+    },
+    {
+      "source": "/manage-subjects",
+      "destination": "/"
+    },
+    {
+      "source": "/subjects/:path*",
+      "destination": "/"
     }
   ]
 }
