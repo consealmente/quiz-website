@@ -693,11 +693,11 @@ if(window.React && window.ReactDOM && typeof ReactDOM.createRoot==='function'){
 
 
  const pageRoutes=[['/','Home'],['/courses','Courses'],['/arcade','Arcade'],['/adventure','Adventure'],['/lab','Lab'],['/review','Review'],['/exam','Exam'],['/tutor','Tutor'],['/analytics','Analytics'],['/study-room','Study room'],['/profile','Profile'],['/multiplayer','Multiplayer']];
- let routeActive=false;
+ let routeActive=false,routeBooting=true;
  function activeNav(path){return path==='/'?'/':('/'+path.split('/').filter(Boolean)[0]);}
  function updateNav(path){const nav=$('studioNav');nav.replaceChildren();for(const [url,name] of pageRoutes){const a=document.createElement('a');a.href=url;a.textContent=name;if(activeNav(path)===url){a.className='active';a.setAttribute('aria-current','page');}a.addEventListener('click',e=>{if(!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey&&e.button===0){e.preventDefault();goRoute(url);}});nav.appendChild(a);}}
  const originalShowLibrary=showLibrary,originalShowQuiz=showQuiz;
- showLibrary=function(){if(routeActive||location.pathname!=='/'){routeActive=false;history.replaceState({},'','/');$('studioPage').hidden=true;modalRoot.render(null);}updateNav('/');originalShowLibrary();};
+ showLibrary=function(){if(routeBooting){originalShowLibrary();return;}if(routeActive||location.pathname!=='/'){routeActive=false;history.replaceState({},'','/');$('studioPage').hidden=true;modalRoot.render(null);}updateNav('/');originalShowLibrary();};
  showQuiz=function(){if(routeActive){routeActive=false;$('studioPage').hidden=true;modalRoot.render(null);history.replaceState({},'','/');}updateNav('/');originalShowQuiz();};
  function goRoute(path,query=''){if(location.pathname+location.search!==path+query)history.pushState({},'',path+query);routePage();}
  function routePage(){
@@ -745,7 +745,7 @@ if(window.React && window.ReactDOM && typeof ReactDOM.createRoot==='function'){
  function BrainLab(){
   const [angle,setAngle]=React.useState(-.4),[selected,setSelected]=React.useState('frontal'),[quiz,setQuiz]=React.useState(false),[target,setTarget]=React.useState(0),[feedback,setFeedback]=React.useState(''),[score,setScore]=React.useState(0);
   const drag=React.useRef(null),region=brainRegions.find(r=>r[0]===selected);
-  function choose(r){setSelected(r);if(quiz){if(r===brainRegions[target][0]){setScore(v=>v+1);setFeedback('Correct!');gameSound('correct');}else{setFeedback('Try again — look for '+brainRegions[target][1]+'.');gameSound('wrong');}}}
+  function choose(r){setSelected(r);if(quiz&&feedback!=='Correct!'){if(r===brainRegions[target][0]){setScore(v=>v+1);setFeedback('Correct!');gameSound('correct');}else{setFeedback('Try again — look for '+brainRegions[target][1]+'.');gameSound('wrong');}}}
   // Procedurally project a simplified three-dimensional lobe model. Painter-sort surface patches by depth.
   const vertices=React.useMemo(()=>{const patches=[];for(let i=0;i<26;i++)for(let j=0;j<36;j++){const a=i*Math.PI/26,b=j*2*Math.PI/36;const point=(aa,bb)=>{const ripple=1+.035*Math.sin(bb*12+aa*9)+.025*Math.cos(aa*16-bb*7);return[1.45*ripple*Math.sin(aa)*Math.cos(bb),.88*ripple*Math.cos(aa),.85*ripple*Math.sin(aa)*Math.sin(bb)];};const vs=[point(a,b),point(a+Math.PI/26,b),point(a+Math.PI/26,b+2*Math.PI/36),point(a,b+2*Math.PI/36)],p=point(a+.5*Math.PI/26,b+Math.PI/36);const reg=p[0]<-.53?'frontal':p[0]>.87?'occipital':p[1]>.1?'parietal':'temporal';patches.push({vs,reg});}return patches;},[]);
   function project(p){const x=p[0]*Math.cos(angle)+p[2]*Math.sin(angle),z=-p[0]*Math.sin(angle)+p[2]*Math.cos(angle);return[320+x*130,165-p[1]*130,z];}
@@ -812,7 +812,7 @@ if(window.React && window.ReactDOM && typeof ReactDOM.createRoot==='function'){
  // Keep the original quiz engine and cloud state schema unchanged.
  const originalAward=awardGame;awardGame=function(id,score){const xp=originalAward(id,score);logDaily('game');return xp;};
  const originalChoose=choose;choose=function(j){if(cloudLoading)return;const a=current(),q=currentQuestion();if(!a||!q||a.answers[q.n])return;originalChoose(j);logDaily('quiz');};
- window.addEventListener('popstate',routePage);setTimeout(routePage,0);
+ window.addEventListener('popstate',routePage);setTimeout(()=>{routeBooting=false;routePage();},0);
 
  function StudyModal({mode,category}){
   const ref=React.useRef(null);
