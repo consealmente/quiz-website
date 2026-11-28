@@ -77,6 +77,14 @@
     {
       "source": "/multiplayer",
       "destination": "/"
+    },
+    {
+      "source": "/psychology",
+      "destination": "/"
+    },
+    {
+      "source": "/psychology/:path*",
+      "destination": "/"
     }
   ]
 }
