@@ -93,6 +93,10 @@
     {
       "source": "/subjects/:path*",
       "destination": "/"
+    },
+    {
+      "source": "/account",
+      "destination": "/"
     }
   ]
 }
