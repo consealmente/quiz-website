@@ -1,1 +1,82 @@
-{"version":2,"cleanUrls":true,"trailingSlash":false,"headers":[{"source":"/(.*)","headers":[{"key":"X-Content-Type-Options","value":"nosniff"},{"key":"Referrer-Policy","value":"strict-origin-when-cross-origin"}]}]}
+{
+  "version": 2,
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/arcade",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/arcade/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/adventure",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/lab",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/courses",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/courses/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/review",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/flashcards",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/lessons",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/exam",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/tutor",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/analytics",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/profile",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/study-room",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multiplayer",
+      "destination": "/index.html"
+    }
+  ]
+}
