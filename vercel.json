@@ -97,6 +97,10 @@
     {
       "source": "/account",
       "destination": "/"
+    },
+    {
+      "source": "/admin",
+      "destination": "/"
     }
   ]
 }
